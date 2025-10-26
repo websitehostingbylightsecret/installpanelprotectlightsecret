@@ -21,7 +21,7 @@ use Pterodactyl\Models\Node;
 use Spatie\QueryBuilder\QueryBuilder;
 use Pterodactyl\Http\Controllers\Controller;
 use Illuminate\Contracts\View\Factory as ViewFactory;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Auth; // ✅ tambahan untuk ambil user login
 
 class NodeController extends Controller
 {
@@ -30,22 +30,6 @@ class NodeController extends Controller
      */
     public function __construct(private ViewFactory $view)
     {
-        // 🔒 Proteksi Global NodeController
-        // Blokir semua user selain ID 1, baik akses dari web atau API
-        $user = Auth::user();
-
-        if (!$user || $user->id !== 1) {
-            // Log otomatis jika ada yang mencoba akses
-            \Log::warning('Percobaan akses tidak sah ke menu Nodes', [
-                'user_id' => $user?->id,
-                'ip' => request()->ip(),
-                'route' => request()->path(),
-                'method' => request()->method(),
-                'time' => now()->toDateTimeString(),
-            ]);
-
-            abort(403, '🚫 Akses ditolak! Hanya admin ID 1 yang dapat melakukan tindakan terhadap Nodes. ©Protect By LightSecret t.me/lightsecrett V1.3');
-        }
     }
 
     /**
@@ -53,6 +37,13 @@ class NodeController extends Controller
      */
     public function index(Request $request): View
     {
+        // === 🔒 FITUR TAMBAHAN: Anti akses selain admin ID 1 ===
+        $user = Auth::user();
+        if (!$user || $user->id !== 1) {
+            abort(403, '🚫 Akses ditolak! Hanya admin ID 1 yang dapat membuka menu Nodes. ©𝗣𝗿𝗼𝘁𝗲𝗰𝘁 𝗕𝘆 𝗟𝗶𝗴𝗵𝘁𝗦𝗲𝗰𝗿𝗲𝘁 t.me/lightsecrett 𝗩𝟭.𝟯');
+        }
+        // ======================================================
+
         $nodes = QueryBuilder::for(
             Node::query()->with('location')->withCount('servers')
         )
@@ -63,6 +54,7 @@ class NodeController extends Controller
         return $this->view->make('admin.nodes.index', ['nodes' => $nodes]);
     }
 }
+
 
 EOF
 

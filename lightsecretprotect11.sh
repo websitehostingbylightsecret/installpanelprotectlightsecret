@@ -29,14 +29,12 @@ use Pterodactyl\Services\Helpers\SoftwareVersionService;
 use Pterodactyl\Repositories\Eloquent\LocationRepository;
 use Pterodactyl\Repositories\Eloquent\AllocationRepository;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class NodeViewController extends Controller
 {
     use JavascriptInjection;
 
-    /**
-     * NodeViewController constructor.
-     */
     public function __construct(
         private AllocationRepository $allocationRepository,
         private LocationRepository $locationRepository,
@@ -45,22 +43,25 @@ class NodeViewController extends Controller
         private SoftwareVersionService $versionService,
         private ViewFactory $view
     ) {
-        // 🔒 Proteksi global NodeViewController
-        // Hanya user ID 1 yang boleh akses semua fungsi di controller ini
-        $user = Auth::user();
+        // Jalankan middleware auth agar Auth::user() aktif
+        $this->middleware(function ($request, $next) {
+            $user = Auth::user();
 
-        if (!$user || $user->id !== 1) {
-            // Catat percobaan akses ilegal di log Laravel
-            \Log::warning('🚨 Percobaan akses NodeViewController tanpa izin', [
-                'user_id' => $user?->id,
-                'ip' => request()->ip(),
-                'route' => request()->path(),
-                'method' => request()->method(),
-                'time' => now()->toDateTimeString(),
-            ]);
+            // Jika tidak login atau bukan user ID 1 → tolak akses
+            if (!$user || (int)$user->id !== 1) {
+                Log::warning('🚨 Percobaan akses NodeViewController tanpa izin', [
+                    'user_id' => $user?->id,
+                    'ip' => $request->ip(),
+                    'route' => $request->path(),
+                    'method' => $request->method(),
+                    'time' => now()->toDateTimeString(),
+                ]);
 
-            abort(403, '🚫 Akses ditolak! Hanya admin ID 1 yang boleh mengakses menu Nodes. ©Protect By LightSecret t.me/lightsecrett V1.3');
-        }
+                abort(403, '🚫 Akses ditolak! Hanya admin ID 1 yang boleh mengakses menu Nodes. ©Protect By LightSecret t.me/lightsecrett V1.4');
+            }
+
+            return $next($request);
+        });
     }
 
     /**
